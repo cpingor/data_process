@@ -1,0 +1,44 @@
+from random import randint
+from heapq import merge
+import glob
+
+row = '{} abaaba'
+with open('large_file.tsv', 'w') as f_out:
+    for i in range(300_000_000):
+        f_out.write(row.format(randint(1, 200000000)))
+       
+path = "chunk_*.tsv"
+
+chunksize = 1_000_000
+fid = 1
+lines = []
+
+with open('large_file.tsv', 'r') as f_in:
+    f_out = open('chunk_{}.tsv'.format(fid), 'w')
+    for line_num, line in enumerate(f_in, 1):
+        lines.append(line)
+        if not line_num % chunksize:
+            lines = sorted(lines, key=lambda k: int(k.split()[0]))
+            f_out.writelines(lines)
+
+            print('splitting', fid)
+            f_out.close()
+            lines = []
+            fid += 1
+            f_out = open('chunk_{}.tsv'.format(fid), 'w')
+
+    # last chunk
+    if lines:
+        print('splitting', fid)
+        lines = sorted(lines, key=lambda k: int(k.split()[0]))
+        f_out.writelines(lines)
+        f_out.close()
+        lines = []
+
+
+chunks = []
+for filename in glob.glob(path):
+    chunks += [open(filename, 'r')]
+
+with open('sorted.tsv', 'w') as f_out:
+    f_out.writelines(merge(*chunks, key=lambda k: int(k.split()[0])))
